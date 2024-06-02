@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create a Card</title>
+</head>
+<body>
+    <h1>Create a Card</h1>
+    <div id="card">
+        <div id="card-content"></div>
+    </div>
+    <label for="command">Command:</label>
+    <input type="text" id="command">
+    <button id="submit">Submit</button>
+    <button id="clear">Clear</button>
+    <button id="save">Save</button>
+    <script>
+        const cardContent = document.getElementById('card-content');
+        const command = document.getElementById('command');
+        const submit = document.getElementById('submit');
+        const clear = document.getElementById('clear');
+        const save = document.getElementById('save');
+        submit.addEventListener('click', () => {
+            let commandValue = command.value;
+            fetch (`/api/command/${commandValue}`)
+                .then(response => response.json())
+                .then(card => {
+                    cardContent.innerHTML = card.content;
+                });
+        });
+        clear.addEventListener('click', () => {
+            command.value = '';
+            cardContent.innerHTML = '';
+        });
+        save.addEventListener('click', () => {
+            let author = prompt('Author:');
+            let title = prompt('Title:');
+            let description = prompt('Description:');
+            let tags = prompt('Tags, separated by comma:');
+            let password = prompt('Password to edit:');
+            let date = new Date();
+            let created_at = date.toISOString();
+            let card_id = ''
+            fetch('/api/cards', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    author: author,
+                    title: title,
+                    description: description,
+                    tags: tags,
+                    password: password,
+                    created_at: created_at
+                })
+            }).then(response => response.json())
+            .then(card => {
+                card_id = card.id;
+                alert(`Card created with id ${card.id}`);
+            }).catch(error => {
+                alert('Error creating card');
+            });
+            //redirect to that card
+            window.location.href = `/cards/${card_id}`;
+        });
+    </script>
+</body>
+</html>

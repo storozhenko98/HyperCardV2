@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cards</title>
+</head>
+<body>
+    <h1>Cards</h1>
+    <p>Here are the cards</p>
+    <div id="cards"></div>
+    <script>
+        fetch('/api/cards')
+            .then(response => response.json())
+            .then(cards => {
+                const cardsDiv = document.getElementById('cards');
+                cards.forEach(card => {
+                    const cardDiv = document.createElement('div');
+                    cardDiv.innerHTML = `
+                        <h2>${card.title}</h2>
+                        <p>${card.author}</p>
+                        <p>${card.description}</p>
+                        <a href="/cards/${card.id}">View</a>
+                        <p>${card.created_at}</p>
+                        <p>${card.tags}</p>
+                    `;
+                    cardsDiv.appendChild(cardDiv);
+                });
+            });
+    </script>
+</body>
+</html>
