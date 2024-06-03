@@ -1,6 +1,6 @@
 import sqlite3
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from openai import OpenAI
 
 app = FastAPI()
@@ -34,6 +34,15 @@ def read_cards():
         html = file.read()
     return HTMLResponse(content=html)
 
+@app.get("/api/cards")
+def get_cards():
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    c.execute('SELECT id, title, description, tags, author, created_at FROM cards')
+    data = c.fetchall()
+    conn.close()
+    return JSONResponse(content={"cards": data})
+
 # For /new serve new.html
 @app.get("/new", response_class=HTMLResponse)
 def read_new():
@@ -50,47 +59,30 @@ def read_edit():
     return HTMLResponse(content=html)
 '''
 
-# For /card/{id} find in database, return whole entry, and let me edit it
-@app.get("/card/{id}", response_class=HTMLResponse)
+# For /card/{id} find in database, return html
+@app.get("/cards/{id}", response_class=HTMLResponse)
 def read_card(id: int):
+    print("Looking for card with id:", id)
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
-    c.execute('SELECT * FROM cards WHERE id=?', (id,))
-    card = c.fetchone()
+    c.execute('SELECT html FROM cards WHERE id = ?', (id,))
+    data = c.fetchone()
     conn.close()
-    if card:
-        html = f'''
-        <html>
-            <head>
-                <title>{card[1]}</title>
-            </head>
-            <body>
-                <h1>{card[1]}</h1>
-                <p>{card[2]}</p>
-                <p> By: {card[5]}</p>
-                <button id="share">Share</button>
-                <div>
-                    {card[3]}
-                </div>
-                <script>
-                    document.getElementById('share').addEventListener('click', () => {{
-                        navigator.share({{
-                            title: '{card[1]}',
-                            text: '{card[2]}',
-                            url: window.location.href
-                        }})
-                    }})
-                </script>
-            </body>
-        </html>
-        '''
-        return HTMLResponse(content=html)
+    if data is None:
+        return {'error': 'Card not found'}
     else:
-        return HTMLResponse(content='Card not found')
+        return HTMLResponse(content=data[0])
 
 # Route for saving a new card
 @app.post("/publish")
-def create_card(title: str, description: str, html: str, tags: str, author: str, edit_password: str):
+async def create_card(request: Request):
+    data = await request.json()
+    author = data['author']
+    title = data['title']
+    description = data['description']
+    tags = data['tags']
+    html = data['html']
+    edit_password = data['password']
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     c.execute('INSERT INTO cards (title, description, html, tags, author, created_at, edit_password) VALUES (?, ?, ?, ?, ?, datetime("now"), ?)', (title, description, html, tags, author, edit_password))

@@ -4,25 +4,80 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cards</title>
+    <style>
+        body {
+            background-color: #c0c0c0; /* Light gray background for a retro feel */
+            font-family: 'Chicago', 'Geneva', 'Verdana', sans-serif; /* Classic Macintosh font */
+            color: #000000; /* Black text color */
+            text-align: center;
+            padding: 50px;
+        }
+        h1 {
+            font-size: 2.5em;
+            color: #000000; /* Black color for headings */
+        }
+        a {
+            color: #0000ff; /* Blue color for links */
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            font-size: 1em;
+            margin: 10px 0;
+        }
+        .credits {
+            font-style: italic;
+            margin-top: 30px;
+        }
+        .container {
+            border: 2px solid #000000; /* Black border */
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #ffffff; /* White background inside the container */
+            box-shadow: 5px 5px #888888; /* Gray shadow for a subtle 3D effect */
+            max-width: 800px;
+            margin: auto;
+        }
+        .card {
+            border: 1px solid #000000;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #ffffff;
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
     <h1>Cards</h1>
     <p>Here are the cards</p>
-    <div id="cards"></div>
+    <div id="cards" class="container"></div>
     <script>
         fetch('/api/cards')
             .then(response => response.json())
-            .then(cards => {
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                if (data.cards.length === 0) {
+                    const cardsDiv = document.getElementById('cards');
+                    cardsDiv.innerHTML = '<p>No cards found</p>';
+                    return;
+                }
                 const cardsDiv = document.getElementById('cards');
-                cards.forEach(card => {
+                data.cards.forEach(card => {
                     const cardDiv = document.createElement('div');
+                    cardDiv.className = 'card';
                     cardDiv.innerHTML = `
-                        <h2>${card.title}</h2>
-                        <p>${card.author}</p>
-                        <p>${card.description}</p>
-                        <a href="/cards/${card.id}">View</a>
-                        <p>${card.created_at}</p>
-                        <p>${card.tags}</p>
+                        <h2>${card[1]}</h2>
+                        <p><strong>Author:</strong> ${card[4]}</p>
+                        <p><strong>Description:</strong> ${card[2]}</p>
+                        <a href="/cards/${card[0]}">View</a>
+                        <p><strong>Created at:</strong> ${card[5]}</p>
+                        <p><strong>Tags:</strong> ${card[3]}</p>
                     `;
                     cardsDiv.appendChild(cardDiv);
                 });

@@ -48,22 +48,26 @@
         button:disabled {
             background-color: #d3d3d3; /* Gray color for disabled button */
         }
-        #card {
+        #iframe-container {
             border: 1px solid #000000;
             padding: 10px;
             background-color: #ffffff;
             height: 300px; /* Larger height for card content area */
             overflow-y: auto;
             margin-bottom: 10px;
-            cursor: pointer;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Create a Card</h1>
-        <div id="card">
-            <div id="card-content"></div>
+        <div id="iframe-container">
+            <iframe id="card-iframe"></iframe>
         </div>
         <label for="command">Command:</label>
         <input type="text" id="command">
@@ -72,7 +76,7 @@
         <button id="save">Save</button>
     </div>
     <script>
-        const cardContent = document.getElementById('card-content');
+        const cardIframe = document.getElementById('card-iframe');
         const command = document.getElementById('command');
         const submit = document.getElementById('submit');
         const clear = document.getElementById('clear');
@@ -112,11 +116,9 @@
             command.value = '';
         }
 
-        cardContent.addEventListener('click', handleElementClick);
-
         submit.addEventListener('click', () => {
             let commandValue = command.value;
-            let presentState = cardContent.innerHTML;
+            let presentState = cardIframe.contentDocument.documentElement.outerHTML;
             setSubmitButtonState(false);
             fetch('/api/command', {
                 method: 'POST',
@@ -130,7 +132,7 @@
             })
                 .then(response => response.json())
                 .then(card => {
-                    cardContent.innerHTML = card.html;
+                    cardIframe.srcdoc = card.html;
                     resetInput();
                     setSubmitButtonState(true);
                 });
@@ -138,7 +140,7 @@
 
         clear.addEventListener('click', () => {
             command.value = '';
-            cardContent.innerHTML = '';
+            cardIframe.srcdoc = '';
         });
 
         save.addEventListener('click', () => {
@@ -149,7 +151,6 @@
             let password = prompt('Password to edit:');
             let date = new Date();
             let created_at = date.toISOString();
-            let card_id = ''
             fetch('/publish', {
                 method: 'POST',
                 headers: {
@@ -161,13 +162,13 @@
                     description: description,
                     tags: tags,
                     password: password,
-                    created_at: created_at
+                    created_at: created_at,
+                    html: cardIframe.contentDocument.documentElement.outerHTML
                 })
             }).then(response => response.json())
             .then(card => {
-                card_id = card.id;
                 alert(`Card created with id ${card.id}`);
-                window.location.href = `/cards/${card_id}`;
+                window.location.href = `/cards/${card.id}`;
             }).catch(error => {
                 alert('Error creating card');
             });
@@ -177,6 +178,10 @@
             if (event.key === 'Enter') {
                 submit.click();
             }
+        });
+
+        cardIframe.addEventListener('load', () => {
+            cardIframe.contentDocument.addEventListener('click', handleElementClick);
         });
     </script>
 </body>
