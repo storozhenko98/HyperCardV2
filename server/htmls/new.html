@@ -4,35 +4,143 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create a Card</title>
+    <style>
+        body {
+            background-color: #c0c0c0; /* Light gray background for a retro feel */
+            font-family: 'Chicago', 'Geneva', 'Verdana', sans-serif; /* Classic Macintosh font */
+            color: #000000; /* Black text color */
+            text-align: center;
+            padding: 50px;
+        }
+        h1 {
+            font-size: 2.5em;
+            color: #000000; /* Black color for headings */
+        }
+        .container {
+            border: 2px solid #000000; /* Black border */
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #ffffff; /* White background inside the container */
+            box-shadow: 5px 5px #888888; /* Gray shadow for a subtle 3D effect */
+            max-width: 800px; /* Larger view window */
+            margin: auto;
+        }
+        label {
+            font-size: 1.2em;
+            display: block;
+            margin: 10px 0;
+        }
+        input[type="text"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #000000;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: 1px solid #000000;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+            font-size: 1em;
+        }
+        button:disabled {
+            background-color: #d3d3d3; /* Gray color for disabled button */
+        }
+        #card {
+            border: 1px solid #000000;
+            padding: 10px;
+            background-color: #ffffff;
+            height: 300px; /* Larger height for card content area */
+            overflow-y: auto;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <h1>Create a Card</h1>
-    <div id="card">
-        <div id="card-content"></div>
+    <div class="container">
+        <h1>Create a Card</h1>
+        <div id="card">
+            <div id="card-content"></div>
+        </div>
+        <label for="command">Command:</label>
+        <input type="text" id="command">
+        <button id="submit">Submit</button>
+        <button id="clear">Clear</button>
+        <button id="save">Save</button>
     </div>
-    <label for="command">Command:</label>
-    <input type="text" id="command">
-    <button id="submit">Submit</button>
-    <button id="clear">Clear</button>
-    <button id="save">Save</button>
     <script>
         const cardContent = document.getElementById('card-content');
         const command = document.getElementById('command');
         const submit = document.getElementById('submit');
         const clear = document.getElementById('clear');
         const save = document.getElementById('save');
+
+        function setSubmitButtonState(state) {
+            submit.disabled = !state;
+        }
+
+        function handleElementClick(event) {
+            event.stopPropagation();
+            const element = event.target;
+            let description = `Regarding: <${element.tagName.toLowerCase()}`;
+
+            if (element.id) {
+                description += ` id="${element.id}"`;
+            }
+
+            if (element.className) {
+                description += ` class="${element.className}"`;
+            }
+
+            if (element.innerText) {
+                description += `>${element.innerText.trim().substring(0, 20)}...`;
+            } else if (element.value) {
+                description += ` value="${element.value}"`;
+            } else {
+                description += '>';
+            }
+
+            description += `</${element.tagName.toLowerCase()}>`;
+
+            command.value = description;
+        }
+
+        function resetInput() {
+            command.value = '';
+        }
+
+        cardContent.addEventListener('click', handleElementClick);
+
         submit.addEventListener('click', () => {
             let commandValue = command.value;
-            fetch (`/api/command/${commandValue}`)
+            let presentState = cardContent.innerHTML;
+            setSubmitButtonState(false);
+            fetch('/api/command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    command: commandValue,
+                    presentState: presentState
+                })
+            })
                 .then(response => response.json())
                 .then(card => {
-                    cardContent.innerHTML = card.content;
+                    cardContent.innerHTML = card.html;
+                    resetInput();
+                    setSubmitButtonState(true);
                 });
         });
+
         clear.addEventListener('click', () => {
             command.value = '';
             cardContent.innerHTML = '';
         });
+
         save.addEventListener('click', () => {
             let author = prompt('Author:');
             let title = prompt('Title:');
@@ -42,7 +150,7 @@
             let date = new Date();
             let created_at = date.toISOString();
             let card_id = ''
-            fetch('/api/cards', {
+            fetch('/publish', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -59,11 +167,16 @@
             .then(card => {
                 card_id = card.id;
                 alert(`Card created with id ${card.id}`);
+                window.location.href = `/cards/${card_id}`;
             }).catch(error => {
                 alert('Error creating card');
             });
-            //redirect to that card
-            window.location.href = `/cards/${card_id}`;
+        });
+
+        command.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                submit.click();
+            }
         });
     </script>
 </body>
